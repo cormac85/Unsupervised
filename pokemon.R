@@ -17,16 +17,17 @@ pok <- read_csv("data/Pokemon.csv")
 
 head(pok)
 
-pok_stats <- pok[,6:11]
-
-wss <- fit_kmeans(pok_stats)
+wss <- fit_kmeans(pok[ ,6:11])
 
 plot(1:15, wss, type = "b", 
      xlab = "Number of Clusters", 
      ylab = "Within groups sum of squares")
 
-k <- 6
+k <- 4
 
-pok_kmeans <- kmeans(pok_stats,k, nstart=20)
+pok_kmeans <- kmeans(pok[ , 6:11],k, nstart=20)
 
-plot(pok_stats, col=pok_kmeans$cluster)
+
+plot(pok[ ,c(6,7,8,9,10,11,13)] %>% 
+       mutate(Legendary = as.factor(Legendary)),
+     col=pok_kmeans$cluster)

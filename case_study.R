@@ -1,6 +1,19 @@
 library(tidyverse)
 library(datakindr)
 
+fit_kmeans <- function(dataset){
+  # Initialise within sum of squares
+  wss <- 0
+  
+  for (i in 1:15) {
+    # Fit the model: km.out
+    km.out <- kmeans(dataset, centers = i, nstart = 20, iter.max = 50)
+    # Save the within cluster sum of squares
+    wss[i] <- km.out$tot.withinss
+  }
+  wss
+}
+
 url <- "http://s3.amazonaws.com/assets.datacamp.com/production/course_1903/datasets/WisconsinCancer.csv"
 
 wisc_cancer <- read_csv(url)
@@ -103,3 +116,46 @@ ggplot(data = wisc_cancer[ ,2:32] %>% cbind(wisc_cancer_clusters),
   dk_theme +
   scale_color_brewer(palette = "Set1")
 
+
+# Kmeans clustering
+wss_wisc <- fit_kmeans(scale(wisc_cancer_matrix))
+
+# Scree
+ggplot(data=data.frame(wss_wisc, index = 1:length(wss_wisc)),
+       aes(index, wss_wisc)) +
+  geom_line() +
+  geom_point(shape=2)
+
+wisc_kmeans <- kmeans(scale(wisc_cancer_matrix), 2, nstart=20)
+
+# Evaluate
+ggplot(data = wisc_cancer[ ,2:32] %>% cbind(wisc_kmeans$cluster),
+       aes(diagnosis, radius_mean, 
+           colour = as.factor(wisc_kmeans$cluster))) +
+  geom_point(size = 2, alpha = 0.7) +
+  dk_theme +
+  scale_color_brewer(palette = "Set1")
+
+table(wisc_kmeans$cluster, diagnosis) %>% 
+  apply(1, min) %>% sum 
+# 51 are in the other cluster.
+
+table(wisc_kmeans$cluster, wisc_cancer_clusters) 
+
+# 37 are in disagreement
+table(wisc_kmeans$cluster, wisc_cancer_clusters) %>% 
+  apply(2, min) %>% sum 
+
+################################
+# using PCA with hclust
+################################
+
+wisc_pca_hclust <- hclust(dist(wisc_cancer_pcs$x[, 1:7]), method = "complete")
+wisc_pca_hclust_clusters <- cutree(wisc_pca_hclust, k=4)
+
+# Evaluate
+table(wisc_pca_hclust_clusters, diagnosis)
+# Compare 3 approaches: Hclust, kmeans, PCA with hclust
+table(wisc_pca_hclust_clusters, diagnosis) %>% apply(1, min) %>% sum
+table(wisc_kmeans$cluster, diagnosis) %>% apply(1, min) %>% sum
+table(wisc_cancer_clusters, diagnosis) %>% apply(1, min) %>% sum
